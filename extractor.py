@@ -12,7 +12,8 @@ def extract_format_data(format_data):
     }
 
 def extract_video_data_from_url(url):
-    command = f'yt-dlp "{url}" -j'
+    # Add the --cookies flag to the command
+    command = f'yt-dlp --cookies cookies.txt "{url}" -j'
     output = os.popen(command).read()
     if not output.strip():
         return {
