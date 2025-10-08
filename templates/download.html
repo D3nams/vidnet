@@ -165,9 +165,6 @@
                  data-ad-slot="2245616548"
                  data-ad-format="auto"
                  data-full-width-responsive="true"></ins>
-            <script>
-                 (adsbygoogle = window.adsbygoogle || []).push({});
-            </script>
             <div style="margin-top:12px; color:#333;">Advertisement</div>
         </div>
     </div>
@@ -175,6 +172,8 @@
     <script>
     function showPopupAd() {
         document.getElementById('popup-ad').style.display = 'flex';
+        // Push the ad ONLY when the popup is shown
+        (adsbygoogle = window.adsbygoogle || []).push({});
         // Optionally, close popup after a few seconds:
         setTimeout(closePopupAd, 5000); // closes after 5 seconds
     }
