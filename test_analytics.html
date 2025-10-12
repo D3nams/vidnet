@@ -1,0 +1,498 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Analytics Manager Test Runner</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f8fafc;
+        }
+        
+        .header {
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+            margin-bottom: 20px;
+        }
+        
+        .test-section {
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+            margin-bottom: 20px;
+        }
+        
+        .test-result {
+            padding: 10px;
+            margin: 5px 0;
+            border-radius: 4px;
+            font-family: monospace;
+        }
+        
+        .test-pass {
+            background-color: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+        
+        .test-fail {
+            background-color: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+        }
+        
+        .test-info {
+            background-color: #d1ecf1;
+            color: #0c5460;
+            border: 1px solid #bee5eb;
+        }
+        
+        .button {
+            background-color: #007bff;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 4px;
+            cursor: pointer;
+            margin: 5px;
+        }
+        
+        .button:hover {
+            background-color: #0056b3;
+        }
+        
+        .button.secondary {
+            background-color: #6c757d;
+        }
+        
+        .button.secondary:hover {
+            background-color: #545b62;
+        }
+        
+        .metrics-display {
+            background-color: #f8f9fa;
+            border: 1px solid #dee2e6;
+            border-radius: 4px;
+            padding: 15px;
+            margin: 10px 0;
+            font-family: monospace;
+            white-space: pre-wrap;
+        }
+        
+        .consent-demo {
+            border: 2px dashed #007bff;
+            padding: 15px;
+            border-radius: 8px;
+            margin: 10px 0;
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>🎬 VidNet Analytics Manager Test Suite</h1>
+        <p>Comprehensive testing for Google Analytics 4, Facebook Pixel, and custom metrics collection with GDPR/CCPA compliance.</p>
+    </div>
+
+    <div class="test-section">
+        <h2>Test Controls</h2>
+        <button class="button" onclick="runAllTests()">Run All Tests</button>
+        <button class="button secondary" onclick="clearResults()">Clear Results</button>
+        <button class="button secondary" onclick="clearAllData()">Clear Analytics Data</button>
+        <button class="button secondary" onclick="showMetrics()">Show Current Metrics</button>
+    </div>
+
+    <div class="test-section">
+        <h2>Consent Management Demo</h2>
+        <div class="consent-demo">
+            <p><strong>Test the consent management system:</strong></p>
+            <button class="button" onclick="testConsentBanner()">Show Consent Banner</button>
+            <button class="button" onclick="testPrivacySettings()">Show Privacy Settings</button>
+            <button class="button secondary" onclick="resetConsent()">Reset Consent</button>
+            <div id="consent-status" class="test-result test-info" style="margin-top: 10px;">
+                Consent Status: <span id="consent-value">Not Set</span>
+            </div>
+        </div>
+    </div>
+
+    <div class="test-section">
+        <h2>Analytics Tracking Demo</h2>
+        <div>
+            <button class="button" onclick="simulatePageView()">Simulate Page View</button>
+            <button class="button" onclick="simulateDownload()">Simulate Download</button>
+            <button class="button" onclick="simulateAudioExtraction()">Simulate Audio Extraction</button>
+            <button class="button" onclick="simulateError()">Simulate Error</button>
+        </div>
+    </div>
+
+    <div class="test-section">
+        <h2>Test Results</h2>
+        <div id="test-results"></div>
+    </div>
+
+    <div class="test-section">
+        <h2>Current Analytics Data</h2>
+        <div id="metrics-display" class="metrics-display">
+            Click "Show Current Metrics" to display analytics data
+        </div>
+    </div>
+
+    <!-- Load Analytics Manager -->
+    <script src="static/js/analytics-manager.js"></script>
+    
+    <!-- Simple Test Framework -->
+    <script>
+        // Simple test framework
+        class TestRunner {
+            constructor() {
+                this.tests = [];
+                this.results = [];
+            }
+            
+            test(name, testFn) {
+                this.tests.push({ name, testFn });
+            }
+            
+            expect(actual) {
+                return {
+                    toBe: (expected) => {
+                        if (actual === expected) {
+                            return { passed: true, message: `Expected ${actual} to be ${expected}` };
+                        } else {
+                            throw new Error(`Expected ${actual} to be ${expected}`);
+                        }
+                    },
+                    toEqual: (expected) => {
+                        if (JSON.stringify(actual) === JSON.stringify(expected)) {
+                            return { passed: true, message: `Expected ${JSON.stringify(actual)} to equal ${JSON.stringify(expected)}` };
+                        } else {
+                            throw new Error(`Expected ${JSON.stringify(actual)} to equal ${JSON.stringify(expected)}`);
+                        }
+                    },
+                    toContain: (expected) => {
+                        if (actual && actual.includes && actual.includes(expected)) {
+                            return { passed: true, message: `Expected ${actual} to contain ${expected}` };
+                        } else {
+                            throw new Error(`Expected ${actual} to contain ${expected}`);
+                        }
+                    },
+                    toBeNull: () => {
+                        if (actual === null) {
+                            return { passed: true, message: `Expected ${actual} to be null` };
+                        } else {
+                            throw new Error(`Expected ${actual} to be null`);
+                        }
+                    },
+                    not: {
+                        toBeNull: () => {
+                            if (actual !== null) {
+                                return { passed: true, message: `Expected ${actual} not to be null` };
+                            } else {
+                                throw new Error(`Expected ${actual} not to be null`);
+                            }
+                        }
+                    }
+                };
+            }
+            
+            async run() {
+                this.results = [];
+                const resultsDiv = document.getElementById('test-results');
+                resultsDiv.innerHTML = '<div class="test-info">Running tests...</div>';
+                
+                for (const test of this.tests) {
+                    try {
+                        await test.testFn();
+                        this.results.push({ name: test.name, passed: true, error: null });
+                        this.addResult(test.name, true);
+                    } catch (error) {
+                        this.results.push({ name: test.name, passed: false, error: error.message });
+                        this.addResult(test.name, false, error.message);
+                    }
+                }
+                
+                this.showSummary();
+            }
+            
+            addResult(testName, passed, error = null) {
+                const resultsDiv = document.getElementById('test-results');
+                const resultDiv = document.createElement('div');
+                resultDiv.className = `test-result ${passed ? 'test-pass' : 'test-fail'}`;
+                resultDiv.textContent = `${passed ? '✓' : '✗'} ${testName}${error ? ': ' + error : ''}`;
+                resultsDiv.appendChild(resultDiv);
+            }
+            
+            showSummary() {
+                const passed = this.results.filter(r => r.passed).length;
+                const total = this.results.length;
+                const resultsDiv = document.getElementById('test-results');
+                
+                const summaryDiv = document.createElement('div');
+                summaryDiv.className = `test-result ${passed === total ? 'test-pass' : 'test-fail'}`;
+                summaryDiv.innerHTML = `<strong>Summary: ${passed}/${total} tests passed</strong>`;
+                resultsDiv.appendChild(summaryDiv);
+            }
+        }
+        
+        // Initialize test runner and analytics
+        const testRunner = new TestRunner();
+        let analyticsManager;
+        
+        // Initialize analytics manager
+        try {
+            analyticsManager = new AnalyticsManager();
+            console.log('Analytics Manager initialized for testing');
+        } catch (error) {
+            console.error('Failed to initialize Analytics Manager:', error);
+        }
+        
+        // Define tests
+        testRunner.test('Analytics Manager Initialization', () => {
+            testRunner.expect(analyticsManager).not.toBeNull();
+            testRunner.expect(analyticsManager.isInitialized).toBe(true);
+            testRunner.expect(analyticsManager.customMetrics.session_id).toContain('sess_');
+        });
+        
+        testRunner.test('Session ID Generation', () => {
+            const sessionId = analyticsManager.generateSessionId();
+            testRunner.expect(sessionId).toContain('sess_');
+            testRunner.expect(sessionId.length).toBe(19); // sess_ + timestamp + _ + 9 chars
+        });
+        
+        testRunner.test('Consent Management', () => {
+            // Test accept consent
+            analyticsManager.acceptConsent();
+            testRunner.expect(localStorage.getItem('vidnet_analytics_consent')).toBe('accepted');
+            testRunner.expect(analyticsManager.consentGiven).toBe(true);
+            
+            // Test decline consent
+            analyticsManager.declineConsent();
+            testRunner.expect(localStorage.getItem('vidnet_analytics_consent')).toBe('declined');
+            testRunner.expect(analyticsManager.consentGiven).toBe(false);
+        });
+        
+        testRunner.test('Page View Tracking', () => {
+            const initialPageViews = analyticsManager.customMetrics.page_views;
+            analyticsManager.trackPageView();
+            testRunner.expect(analyticsManager.customMetrics.page_views).toBe(initialPageViews + 1);
+            
+            const metrics = JSON.parse(localStorage.getItem('vidnet_custom_metrics') || '[]');
+            const pageViewEvents = metrics.filter(m => m.event_type === 'page_view');
+            testRunner.expect(pageViewEvents.length > 0).toBe(true);
+        });
+        
+        testRunner.test('Download Tracking', () => {
+            const initialDownloads = analyticsManager.customMetrics.downloads_total;
+            analyticsManager.trackDownload('youtube', '1080p', 'mp4', 'video');
+            
+            testRunner.expect(analyticsManager.customMetrics.downloads_total).toBe(initialDownloads + 1);
+            testRunner.expect(analyticsManager.customMetrics.downloads_by_platform.youtube > 0).toBe(true);
+            testRunner.expect(analyticsManager.customMetrics.downloads_by_quality['1080p'] > 0).toBe(true);
+        });
+        
+        testRunner.test('Download Completion Tracking', () => {
+            analyticsManager.trackDownloadComplete('tiktok', '720p', 'mp4', 'video', 3000);
+            
+            const metrics = JSON.parse(localStorage.getItem('vidnet_custom_metrics') || '[]');
+            const completionEvents = metrics.filter(m => m.event_type === 'download_complete');
+            testRunner.expect(completionEvents.length > 0).toBe(true);
+            
+            const lastEvent = completionEvents[completionEvents.length - 1];
+            testRunner.expect(lastEvent.data.platform).toBe('tiktok');
+            testRunner.expect(lastEvent.data.processing_time).toBe(3000);
+        });
+        
+        testRunner.test('Custom Event Tracking', () => {
+            const eventData = { test_param: 'test_value', number_param: 42 };
+            analyticsManager.trackEvent('test_custom_event', eventData);
+            
+            const metrics = JSON.parse(localStorage.getItem('vidnet_custom_metrics') || '[]');
+            const customEvents = metrics.filter(m => m.event_type === 'test_custom_event');
+            testRunner.expect(customEvents.length > 0).toBe(true);
+            
+            const lastEvent = customEvents[customEvents.length - 1];
+            testRunner.expect(lastEvent.data.test_param).toBe('test_value');
+            testRunner.expect(lastEvent.data.number_param).toBe(42);
+        });
+        
+        testRunner.test('Data Storage Limits', () => {
+            // Clear existing metrics
+            localStorage.removeItem('vidnet_custom_metrics');
+            
+            // Add 105 events to test the 100-event limit
+            for (let i = 0; i < 105; i++) {
+                analyticsManager.storeCustomMetric('test_limit', { index: i });
+            }
+            
+            const metrics = JSON.parse(localStorage.getItem('vidnet_custom_metrics') || '[]');
+            testRunner.expect(metrics.length).toBe(100);
+            testRunner.expect(metrics[0].data.index).toBe(5); // First 5 should be removed
+        });
+        
+        testRunner.test('Dashboard Data Retrieval', () => {
+            const dashboardData = analyticsManager.getDashboardData();
+            
+            testRunner.expect(dashboardData.session).not.toBeNull();
+            testRunner.expect(dashboardData.events).not.toBeNull();
+            testRunner.expect(Array.isArray(dashboardData.events)).toBe(true);
+        });
+        
+        testRunner.test('Data Clearing', () => {
+            // Ensure some data exists
+            analyticsManager.trackPageView();
+            analyticsManager.acceptConsent();
+            
+            testRunner.expect(localStorage.getItem('vidnet_custom_metrics')).not.toBeNull();
+            testRunner.expect(localStorage.getItem('vidnet_analytics_consent')).not.toBeNull();
+            
+            // Clear all data
+            analyticsManager.clearAllData();
+            
+            testRunner.expect(localStorage.getItem('vidnet_custom_metrics')).toBeNull();
+            testRunner.expect(localStorage.getItem('vidnet_analytics_consent')).toBeNull();
+            testRunner.expect(analyticsManager.customMetrics.downloads_total).toBe(0);
+        });
+        
+        // Test control functions
+        function runAllTests() {
+            testRunner.run();
+        }
+        
+        function clearResults() {
+            document.getElementById('test-results').innerHTML = '';
+        }
+        
+        function clearAllData() {
+            if (analyticsManager) {
+                analyticsManager.clearAllData();
+                updateConsentStatus();
+                showMetrics();
+                addResult('Data cleared successfully', true);
+            }
+        }
+        
+        function showMetrics() {
+            if (analyticsManager) {
+                const dashboardData = analyticsManager.getDashboardData();
+                document.getElementById('metrics-display').textContent = JSON.stringify(dashboardData, null, 2);
+            }
+        }
+        
+        function addResult(message, success) {
+            const resultsDiv = document.getElementById('test-results');
+            const resultDiv = document.createElement('div');
+            resultDiv.className = `test-result ${success ? 'test-pass' : 'test-fail'}`;
+            resultDiv.textContent = `${success ? '✓' : '✗'} ${message}`;
+            resultsDiv.appendChild(resultDiv);
+        }
+        
+        // Consent management demo functions
+        function testConsentBanner() {
+            if (analyticsManager) {
+                // Reset consent to trigger banner
+                localStorage.removeItem('vidnet_analytics_consent');
+                analyticsManager.consentGiven = false;
+                analyticsManager.showConsentBanner();
+                updateConsentStatus();
+            }
+        }
+        
+        function testPrivacySettings() {
+            if (analyticsManager) {
+                analyticsManager.showPrivacySettings();
+            }
+        }
+        
+        function resetConsent() {
+            localStorage.removeItem('vidnet_analytics_consent');
+            localStorage.removeItem('vidnet_consent_settings');
+            if (analyticsManager) {
+                analyticsManager.consentGiven = false;
+            }
+            updateConsentStatus();
+            addResult('Consent reset', true);
+        }
+        
+        function updateConsentStatus() {
+            const consentValue = localStorage.getItem('vidnet_analytics_consent') || 'Not Set';
+            document.getElementById('consent-value').textContent = consentValue;
+        }
+        
+        // Analytics tracking demo functions
+        function simulatePageView() {
+            if (analyticsManager) {
+                analyticsManager.trackPageView();
+                addResult('Page view tracked', true);
+                showMetrics();
+            }
+        }
+        
+        function simulateDownload() {
+            if (analyticsManager) {
+                const platforms = ['youtube', 'tiktok', 'instagram', 'facebook'];
+                const qualities = ['720p', '1080p', '4K'];
+                const platform = platforms[Math.floor(Math.random() * platforms.length)];
+                const quality = qualities[Math.floor(Math.random() * qualities.length)];
+                
+                analyticsManager.trackDownload(platform, quality, 'mp4', 'video');
+                
+                // Simulate completion after 2 seconds
+                setTimeout(() => {
+                    analyticsManager.trackDownloadComplete(platform, quality, 'mp4', 'video', 2000);
+                    addResult(`Download completed: ${platform} ${quality}`, true);
+                    showMetrics();
+                }, 2000);
+                
+                addResult(`Download started: ${platform} ${quality}`, true);
+                showMetrics();
+            }
+        }
+        
+        function simulateAudioExtraction() {
+            if (analyticsManager) {
+                const platforms = ['youtube', 'tiktok', 'instagram'];
+                const qualities = ['128kbps', '320kbps'];
+                const platform = platforms[Math.floor(Math.random() * platforms.length)];
+                const quality = qualities[Math.floor(Math.random() * qualities.length)];
+                
+                analyticsManager.trackDownload(platform, quality, 'mp3', 'audio');
+                
+                // Simulate completion after 1.5 seconds
+                setTimeout(() => {
+                    analyticsManager.trackDownloadComplete(platform, quality, 'mp3', 'audio', 1500);
+                    addResult(`Audio extraction completed: ${platform} ${quality}`, true);
+                    showMetrics();
+                }, 1500);
+                
+                addResult(`Audio extraction started: ${platform} ${quality}`, true);
+                showMetrics();
+            }
+        }
+        
+        function simulateError() {
+            if (analyticsManager) {
+                analyticsManager.trackEvent('download_failed', {
+                    platform: 'youtube',
+                    quality: '1080p',
+                    type: 'video',
+                    error_message: 'Video not available'
+                });
+                addResult('Error event tracked', true);
+                showMetrics();
+            }
+        }
+        
+        // Initialize display
+        document.addEventListener('DOMContentLoaded', () => {
+            updateConsentStatus();
+            showMetrics();
+        });
+    </script>
+</body>
+</html>

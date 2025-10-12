@@ -1,0 +1,66 @@
+services:
+  - type: web
+    name: vidnet-api
+    env: docker
+    dockerfilePath: ./Dockerfile
+    dockerContext: .
+    plan: starter
+    region: oregon
+    branch: main
+    healthCheckPath: /health
+    envVars:
+      - key: ENVIRONMENT
+        value: production
+      - key: REDIS_URL
+        fromService:
+          type: redis
+          name: vidnet-redis
+          property: connectionString
+      - key: PERFORMANCE_MONITORING_ENABLED
+        value: "true"
+      - key: RATE_LIMIT_REQUESTS_PER_MINUTE
+        value: "100"
+      - key: RATE_LIMIT_REQUESTS_PER_HOUR
+        value: "2000"
+      - key: RATE_LIMIT_BURST_LIMIT
+        value: "20"
+      - key: METADATA_CACHE_TTL
+        value: "3600"
+      - key: DOWNLOAD_CACHE_TTL
+        value: "1800"
+      - key: PERFORMANCE_RESPONSE_TIME_WARNING
+        value: "2.0"
+      - key: PERFORMANCE_RESPONSE_TIME_CRITICAL
+        value: "5.0"
+      - key: PERFORMANCE_CPU_WARNING
+        value: "70.0"
+      - key: PERFORMANCE_CPU_CRITICAL
+        value: "90.0"
+      - key: PERFORMANCE_MEMORY_WARNING
+        value: "75.0"
+      - key: PERFORMANCE_MEMORY_CRITICAL
+        value: "90.0"
+    buildCommand: docker build -t vidnet-api .
+    startCommand: uvicorn app.main:app --host 0.0.0.0 --port $PORT --workers 2
+    
+  - type: redis
+    name: vidnet-redis
+    plan: starter
+    region: oregon
+    maxmemoryPolicy: allkeys-lru
+    
+databases: []
+
+# Static site for frontend assets (optional - can use CDN instead)
+staticSites:
+  - name: vidnet-static
+    buildCommand: echo "Static files ready"
+    publishPath: ./static
+    pullRequestPreviewsEnabled: false
+    headers:
+      - path: /*
+        headers:
+          Cache-Control: public, max-age=31536000, immutable
+      - path: /*.html
+        headers:
+          Cache-Control: public, max-age=3600

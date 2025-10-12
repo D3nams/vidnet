@@ -1,0 +1,450 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Ad Manager Test Suite</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        .test-pass { color: #10b981; }
+        .test-fail { color: #ef4444; }
+        .test-pending { color: #f59e0b; }
+    </style>
+</head>
+<body class="bg-gray-100 p-8">
+    <div class="max-w-4xl mx-auto">
+        <h1 class="text-3xl font-bold text-gray-900 mb-8">Ad Manager Test Suite</h1>
+        
+        <div class="bg-white rounded-lg shadow p-6 mb-6">
+            <h2 class="text-xl font-semibold mb-4">Test Results</h2>
+            <div id="test-results" class="space-y-2">
+                <!-- Test results will be populated here -->
+            </div>
+            
+            <div class="mt-6 flex space-x-4">
+                <button id="run-tests" class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded">
+                    Run All Tests
+                </button>
+                <button id="clear-results" class="bg-gray-600 hover:bg-gray-700 text-white px-4 py-2 rounded">
+                    Clear Results
+                </button>
+            </div>
+        </div>
+        
+        <div class="bg-white rounded-lg shadow p-6 mb-6">
+            <h2 class="text-xl font-semibold mb-4">Ad Manager Demo</h2>
+            <div id="demo-area" class="space-y-4">
+                <button id="demo-consent" class="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded">
+                    Accept Consent & Initialize Ads
+                </button>
+                <button id="demo-strategic-ads" class="bg-purple-600 hover:bg-purple-700 text-white px-4 py-2 rounded">
+                    Show Strategic Ads
+                </button>
+                <button id="demo-rewarded-ad" class="bg-yellow-600 hover:bg-yellow-700 text-white px-4 py-2 rounded">
+                    Show Rewarded Video Ad
+                </button>
+                <button id="demo-premium-hints" class="bg-pink-600 hover:bg-pink-700 text-white px-4 py-2 rounded">
+                    Add Premium Hints
+                </button>
+                <button id="demo-performance" class="bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 rounded">
+                    Show Performance Metrics
+                </button>
+            </div>
+        </div>
+        
+        <div class="bg-white rounded-lg shadow p-6">
+            <h2 class="text-xl font-semibold mb-4">Performance Metrics</h2>
+            <div id="performance-display" class="text-sm text-gray-600">
+                <p>Run tests to see performance metrics...</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Mock Analytics Manager for testing -->
+    <script>
+        class MockAnalyticsManager {
+            constructor() {
+                this.consentGiven = false;
+                this.customMetrics = {
+                    session_id: 'test_session_' + Date.now(),
+                    session_start: Date.now()
+                };
+                this.events = [];
+            }
+            
+            trackEvent(eventName, eventData) {
+                this.events.push({
+                    event_type: eventName,
+                    data: eventData,
+                    timestamp: Date.now(),
+                    session_id: this.customMetrics.session_id
+                });
+                console.log(`Analytics Event: ${eventName}`, eventData);
+            }
+            
+            trackDownload(platform, quality, format, type) {
+                this.trackEvent('download_start', {
+                    platform, quality, format, type
+                });
+            }
+            
+            trackDownloadComplete(platform, quality, format, type, processingTime) {
+                this.trackEvent('download_complete', {
+                    platform, quality, format, type, processing_time: processingTime
+                });
+            }
+        }
+    </script>
+
+    <!-- Ad Manager Script -->
+    <script src="js/ad-manager.js"></script>
+
+    <!-- Test Suite -->
+    <script>
+        class AdManagerTestSuite {
+            constructor() {
+                this.tests = [];
+                this.results = [];
+                this.mockAnalytics = new MockAnalyticsManager();
+                this.adManager = null;
+            }
+            
+            addTest(name, testFunction) {
+                this.tests.push({ name, testFunction });
+            }
+            
+            async runAllTests() {
+                this.results = [];
+                const resultsContainer = document.getElementById('test-results');
+                resultsContainer.innerHTML = '<p class="test-pending">Running tests...</p>';
+                
+                for (const test of this.tests) {
+                    try {
+                        const startTime = Date.now();
+                        await test.testFunction();
+                        const duration = Date.now() - startTime;
+                        
+                        this.results.push({
+                            name: test.name,
+                            status: 'pass',
+                            duration,
+                            error: null
+                        });
+                    } catch (error) {
+                        this.results.push({
+                            name: test.name,
+                            status: 'fail',
+                            duration: 0,
+                            error: error.message
+                        });
+                    }
+                }
+                
+                this.displayResults();
+            }
+            
+            displayResults() {
+                const resultsContainer = document.getElementById('test-results');
+                const passCount = this.results.filter(r => r.status === 'pass').length;
+                const failCount = this.results.filter(r => r.status === 'fail').length;
+                
+                let html = `
+                    <div class="mb-4 p-3 bg-gray-50 rounded">
+                        <strong>Summary:</strong> ${passCount} passed, ${failCount} failed
+                    </div>
+                `;
+                
+                this.results.forEach(result => {
+                    const statusClass = result.status === 'pass' ? 'test-pass' : 'test-fail';
+                    const statusIcon = result.status === 'pass' ? '✓' : '✗';
+                    
+                    html += `
+                        <div class="flex items-center justify-between p-2 border-b">
+                            <span class="${statusClass}">
+                                ${statusIcon} ${result.name}
+                            </span>
+                            <span class="text-sm text-gray-500">
+                                ${result.duration}ms
+                            </span>
+                        </div>
+                    `;
+                    
+                    if (result.error) {
+                        html += `
+                            <div class="ml-4 text-sm text-red-600 mb-2">
+                                Error: ${result.error}
+                            </div>
+                        `;
+                    }
+                });
+                
+                resultsContainer.innerHTML = html;
+            }
+            
+            // Test helper methods
+            assert(condition, message) {
+                if (!condition) {
+                    throw new Error(message || 'Assertion failed');
+                }
+            }
+            
+            assertEqual(actual, expected, message) {
+                if (actual !== expected) {
+                    throw new Error(message || `Expected ${expected}, got ${actual}`);
+                }
+            }
+            
+            assertContains(container, item, message) {
+                if (!container.includes(item)) {
+                    throw new Error(message || `Expected container to include ${item}`);
+                }
+            }
+            
+            async sleep(ms) {
+                return new Promise(resolve => setTimeout(resolve, ms));
+            }
+        }
+
+        // Initialize test suite
+        const testSuite = new AdManagerTestSuite();
+
+        // Test: AdManager Initialization
+        testSuite.addTest('AdManager Initialization', async () => {
+            testSuite.mockAnalytics.consentGiven = true;
+            testSuite.adManager = new AdManager(testSuite.mockAnalytics);
+            
+            testSuite.assert(testSuite.adManager.isInitialized, 'AdManager should be initialized');
+            testSuite.assert(testSuite.adManager.analytics === testSuite.mockAnalytics, 'Analytics manager should be set');
+            testSuite.assertEqual(testSuite.adManager.adsShownThisSession, 0, 'Initial ads shown should be 0');
+        });
+
+        // Test: Ad Slot Creation
+        testSuite.addTest('Ad Slot Creation', async () => {
+            const expectedSlots = ['header-banner', 'sidebar', 'in-content'];
+            
+            expectedSlots.forEach(slotId => {
+                testSuite.assert(testSuite.adManager.adSlots.has(slotId), `Slot ${slotId} should exist`);
+                
+                const slot = testSuite.adManager.adSlots.get(slotId);
+                testSuite.assert(slot.element, `Slot ${slotId} should have DOM element`);
+                testSuite.assert(slot.contentElement, `Slot ${slotId} should have content element`);
+                testSuite.assertEqual(slot.visible, false, `Slot ${slotId} should initially be hidden`);
+            });
+        });
+
+        // Test: Ad Performance Tracking
+        testSuite.addTest('Ad Performance Tracking', async () => {
+            const initialImpressions = testSuite.adManager.adPerformance.impressions;
+            const initialClicks = testSuite.adManager.adPerformance.clicks;
+            
+            // Track impression
+            testSuite.adManager.trackAdImpression('header-banner', 'banner');
+            testSuite.assertEqual(
+                testSuite.adManager.adPerformance.impressions, 
+                initialImpressions + 1, 
+                'Impressions should increment'
+            );
+            
+            // Track click
+            testSuite.adManager.trackAdClick('header-banner', 'click');
+            testSuite.assertEqual(
+                testSuite.adManager.adPerformance.clicks, 
+                initialClicks + 1, 
+                'Clicks should increment'
+            );
+            
+            // Check CTR calculation
+            const expectedCTR = ((initialClicks + 1) / (initialImpressions + 1)) * 100;
+            testSuite.assertEqual(
+                testSuite.adManager.adPerformance.ctr, 
+                expectedCTR, 
+                'CTR should be calculated correctly'
+            );
+        });
+
+        // Test: Strategic Ad Display
+        testSuite.addTest('Strategic Ad Display', async () => {
+            const initialAdsShown = testSuite.adManager.adsShownThisSession;
+            
+            // Show strategic ads
+            testSuite.adManager.showStrategicAds();
+            
+            // Wait for ads to be shown (they have delays)
+            await testSuite.sleep(6000);
+            
+            testSuite.assert(
+                testSuite.adManager.adsShownThisSession > initialAdsShown, 
+                'Strategic ads should be shown'
+            );
+        });
+
+        // Test: Rewarded Video Ad
+        testSuite.addTest('Rewarded Video Ad', async () => {
+            // Show rewarded ad
+            const adPromise = testSuite.adManager.showRewardedVideoAd();
+            
+            // Wait for modal to appear
+            await testSuite.sleep(100);
+            
+            const modal = document.getElementById('rewarded-ad-modal');
+            testSuite.assert(modal, 'Rewarded ad modal should be created');
+            
+            // Simulate watching the ad
+            const watchBtn = document.getElementById('watch-rewarded-ad');
+            if (watchBtn && !watchBtn.disabled) {
+                watchBtn.click();
+                
+                // Wait for video to complete
+                await testSuite.sleep(16000);
+                
+                const result = await adPromise;
+                testSuite.assertEqual(result, true, 'Rewarded ad should return true when watched');
+            }
+            
+            // Clean up
+            if (modal) {
+                modal.remove();
+            }
+        });
+
+        // Test: Premium Hints
+        testSuite.addTest('Premium Hints', async () => {
+            // Create mock quality options
+            const mockQualityContainer = document.createElement('div');
+            mockQualityContainer.innerHTML = `
+                <div data-quality="4K">
+                    <button>Download 4K</button>
+                </div>
+                <div data-quality="1080p">
+                    <button>Download 1080p</button>
+                </div>
+            `;
+            document.body.appendChild(mockQualityContainer);
+            
+            // Add premium hints
+            testSuite.adManager.addPremiumHints();
+            
+            // Check if premium badge was added to 4K option
+            const fourKOption = mockQualityContainer.querySelector('[data-quality="4K"]');
+            const premiumBadge = fourKOption.querySelector('.bg-yellow-100');
+            testSuite.assert(premiumBadge, '4K option should have premium badge');
+            
+            // Check if 1080p option doesn't have premium badge
+            const hdOption = mockQualityContainer.querySelector('[data-quality="1080p"]');
+            const hdPremiumBadge = hdOption.querySelector('.bg-yellow-100');
+            testSuite.assert(!hdPremiumBadge, '1080p option should not have premium badge');
+            
+            // Clean up
+            mockQualityContainer.remove();
+        });
+
+        // Test: Revenue Calculation
+        testSuite.addTest('Revenue Calculation', async () => {
+            // Set test performance data
+            testSuite.adManager.adPerformance.impressions = 1000;
+            testSuite.adManager.adPerformance.clicks = 50;
+            
+            const revenue = testSuite.adManager.calculateSessionRevenue();
+            
+            // Expected: (1000/1000 * 2.0) + (50 * 0.5) = 2.0 + 25.0 = 27.0
+            testSuite.assertEqual(revenue, 27.0, 'Revenue calculation should be correct');
+        });
+
+        // Test: Consent Integration
+        testSuite.addTest('Consent Integration', async () => {
+            // Test with consent
+            testSuite.mockAnalytics.consentGiven = true;
+            testSuite.adManager.analytics = testSuite.mockAnalytics;
+            
+            const initialImpressions = testSuite.adManager.adPerformance.impressions;
+            testSuite.adManager.trackAdImpression('test-slot', 'test');
+            
+            testSuite.assertEqual(
+                testSuite.adManager.adPerformance.impressions,
+                initialImpressions + 1,
+                'Should track impressions with consent'
+            );
+            
+            // Test without consent
+            testSuite.mockAnalytics.consentGiven = false;
+            
+            const rewardedAdResult = await testSuite.adManager.showRewardedVideoAd();
+            testSuite.assertEqual(rewardedAdResult, false, 'Should not show rewarded ad without consent');
+        });
+
+        // Test: Performance Data Structure
+        testSuite.addTest('Performance Data Structure', async () => {
+            const metrics = testSuite.adManager.getPerformanceMetrics();
+            
+            testSuite.assert(typeof metrics.impressions === 'number', 'Impressions should be number');
+            testSuite.assert(typeof metrics.clicks === 'number', 'Clicks should be number');
+            testSuite.assert(typeof metrics.ctr === 'number', 'CTR should be number');
+            testSuite.assert(typeof metrics.slots === 'object', 'Slots should be object');
+            testSuite.assert(typeof metrics.session_duration === 'number', 'Session duration should be number');
+            testSuite.assert(typeof metrics.revenue_per_session === 'number', 'Revenue per session should be number');
+        });
+
+        // Demo functions
+        function initializeDemo() {
+            document.getElementById('demo-consent').addEventListener('click', () => {
+                testSuite.mockAnalytics.consentGiven = true;
+                if (!testSuite.adManager) {
+                    testSuite.adManager = new AdManager(testSuite.mockAnalytics);
+                }
+                alert('Consent accepted and ads initialized!');
+            });
+
+            document.getElementById('demo-strategic-ads').addEventListener('click', () => {
+                if (testSuite.adManager) {
+                    testSuite.adManager.showStrategicAds();
+                    alert('Strategic ads triggered! Check the page for ad slots.');
+                } else {
+                    alert('Please accept consent first!');
+                }
+            });
+
+            document.getElementById('demo-rewarded-ad').addEventListener('click', async () => {
+                if (testSuite.adManager) {
+                    const result = await testSuite.adManager.showRewardedVideoAd();
+                    alert(`Rewarded ad result: ${result ? 'Watched' : 'Skipped'}`);
+                } else {
+                    alert('Please accept consent first!');
+                }
+            });
+
+            document.getElementById('demo-premium-hints').addEventListener('click', () => {
+                if (testSuite.adManager) {
+                    testSuite.adManager.addPremiumHints();
+                    alert('Premium hints added! (Check console for details)');
+                } else {
+                    alert('Please accept consent first!');
+                }
+            });
+
+            document.getElementById('demo-performance').addEventListener('click', () => {
+                if (testSuite.adManager) {
+                    const metrics = testSuite.adManager.getPerformanceMetrics();
+                    document.getElementById('performance-display').innerHTML = `
+                        <pre>${JSON.stringify(metrics, null, 2)}</pre>
+                    `;
+                } else {
+                    alert('Please accept consent first!');
+                }
+            });
+        }
+
+        // Event listeners
+        document.getElementById('run-tests').addEventListener('click', () => {
+            testSuite.runAllTests();
+        });
+
+        document.getElementById('clear-results').addEventListener('click', () => {
+            document.getElementById('test-results').innerHTML = '<p class="text-gray-500">No tests run yet.</p>';
+            document.getElementById('performance-display').innerHTML = '<p>Run tests to see performance metrics...</p>';
+        });
+
+        // Initialize demo when page loads
+        document.addEventListener('DOMContentLoaded', initializeDemo);
+    </script>
+</body>
+</html>

@@ -1,0 +1,38 @@
+# FastAPI and ASGI server
+fastapi==0.104.1
+uvicorn[standard]==0.24.0
+
+# Video processing
+yt-dlp==2023.11.16
+
+# Caching and data storage
+redis==5.0.1
+
+# HTTP client for external requests
+httpx==0.25.2
+
+# Data validation and serialization
+pydantic==2.5.0
+
+# Background task processing
+celery==5.3.4
+
+# File handling and utilities
+python-multipart==0.0.6
+aiofiles==23.2.1
+
+# Environment configuration
+python-dotenv==1.0.0
+
+# Testing dependencies
+pytest==7.4.3
+pytest-asyncio==0.21.1
+httpx==0.25.2
+
+# System monitoring
+psutil==5.9.6
+
+# Development dependencies
+black==23.11.0
+flake8==6.1.0
+mypy==1.7.1

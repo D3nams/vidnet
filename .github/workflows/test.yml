@@ -1,0 +1,267 @@
+name: Test Suite
+
+on:
+  push:
+    branches: [ main, develop, feature/* ]
+  pull_request:
+    branches: [ main, develop ]
+
+jobs:
+  lint:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Set up Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: '3.12'
+
+    - name: Install linting dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install black flake8 mypy
+
+    - name: Run Black formatter check
+      run: black --check --diff app/ tests/
+
+    - name: Run Flake8 linter
+      run: flake8 app/ tests/ --max-line-length=88 --extend-ignore=E203,W503
+
+    - name: Run MyPy type checker
+      run: mypy app/ --ignore-missing-imports
+
+  unit-tests:
+    runs-on: ubuntu-latest
+    
+    strategy:
+      matrix:
+        python-version: ['3.11', '3.12']
+    
+    services:
+      redis:
+        image: redis:7-alpine
+        ports:
+          - 6379:6379
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Set up Python ${{ matrix.python-version }}
+      uses: actions/setup-python@v4
+      with:
+        python-version: ${{ matrix.python-version }}
+
+    - name: Cache pip dependencies
+      uses: actions/cache@v3
+      with:
+        path: ~/.cache/pip
+        key: ${{ runner.os }}-pip-${{ matrix.python-version }}-${{ hashFiles('requirements.txt') }}
+        restore-keys: |
+          ${{ runner.os }}-pip-${{ matrix.python-version }}-
+          ${{ runner.os }}-pip-
+
+    - name: Install dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install -r requirements.txt
+        pip install pytest-cov pytest-xdist
+
+    - name: Run unit tests
+      env:
+        REDIS_URL: redis://localhost:6379
+        ENVIRONMENT: test
+        PERFORMANCE_MONITORING_ENABLED: false
+      run: |
+        python -m pytest tests/ \
+          -v \
+          --tb=short \
+          --cov=app \
+          --cov-report=xml \
+          --cov-report=html \
+          --cov-fail-under=80 \
+          -n auto
+
+    - name: Upload coverage reports
+      uses: codecov/codecov-action@v3
+      with:
+        file: ./coverage.xml
+        flags: unittests
+        name: codecov-${{ matrix.python-version }}
+
+  integration-tests:
+    runs-on: ubuntu-latest
+    
+    services:
+      redis:
+        image: redis:7-alpine
+        ports:
+          - 6379:6379
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Set up Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: '3.12'
+
+    - name: Install system dependencies
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y ffmpeg
+
+    - name: Install Python dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install -r requirements.txt
+
+    - name: Run integration tests
+      env:
+        REDIS_URL: redis://localhost:6379
+        ENVIRONMENT: test
+      run: |
+        python -m pytest tests/test_*_integration.py \
+          -v \
+          --tb=short \
+          --timeout=300
+
+  docker-tests:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Set up Docker Buildx
+      uses: docker/setup-buildx-action@v3
+
+    - name: Build test image
+      uses: docker/build-push-action@v5
+      with:
+        context: .
+        target: builder
+        load: true
+        tags: vidnet-test:latest
+        cache-from: type=gha
+        cache-to: type=gha,mode=max
+
+    - name: Run tests in Docker
+      run: |
+        docker run --rm \
+          -e REDIS_URL=redis://host.docker.internal:6379 \
+          -e ENVIRONMENT=test \
+          --network host \
+          vidnet-test:latest \
+          python -m pytest tests/ -v --tb=short
+
+    - name: Build production image
+      uses: docker/build-push-action@v5
+      with:
+        context: .
+        target: production
+        load: true
+        tags: vidnet-prod:latest
+
+    - name: Test production image
+      run: |
+        # Start the container
+        docker run -d \
+          --name vidnet-test \
+          -p 8000:8000 \
+          -e ENVIRONMENT=test \
+          -e REDIS_URL=redis://host.docker.internal:6379 \
+          --network host \
+          vidnet-prod:latest
+
+        # Wait for startup
+        sleep 30
+
+        # Test health endpoint
+        curl -f http://localhost:8000/health || exit 1
+
+        # Cleanup
+        docker stop vidnet-test
+        docker rm vidnet-test
+
+  performance-tests:
+    runs-on: ubuntu-latest
+    if: github.event_name == 'pull_request'
+    
+    services:
+      redis:
+        image: redis:7-alpine
+        ports:
+          - 6379:6379
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Set up Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: '3.12'
+
+    - name: Install dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install -r requirements.txt
+        pip install locust
+
+    - name: Run performance tests
+      env:
+        REDIS_URL: redis://localhost:6379
+        ENVIRONMENT: test
+      run: |
+        # Start the application in background
+        uvicorn app.main:app --host 0.0.0.0 --port 8000 &
+        APP_PID=$!
+        
+        # Wait for startup
+        sleep 10
+        
+        # Run load tests
+        python load_test_runner.py --duration 60 --users 10
+        
+        # Cleanup
+        kill $APP_PID
+
+  security-tests:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Run Bandit security linter
+      run: |
+        pip install bandit
+        bandit -r app/ -f json -o bandit-report.json || true
+
+    - name: Run Safety dependency check
+      run: |
+        pip install safety
+        safety check --json --output safety-report.json || true
+
+    - name: Upload security reports
+      uses: actions/upload-artifact@v3
+      with:
+        name: security-reports
+        path: |
+          bandit-report.json
+          safety-report.json

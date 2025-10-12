@@ -1,0 +1,316 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>VidNet Integration Test</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        
+        .test-container {
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        
+        .test-result {
+            padding: 10px;
+            margin: 10px 0;
+            border-radius: 4px;
+        }
+        
+        .test-pass {
+            background-color: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+        
+        .test-fail {
+            background-color: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+        }
+        
+        button {
+            background: #007bff;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 4px;
+            cursor: pointer;
+            margin: 5px;
+        }
+        
+        button:hover {
+            background: #0056b3;
+        }
+        
+        input {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            margin: 10px 0;
+        }
+        
+        .hidden {
+            display: none;
+        }
+    </style>
+</head>
+<body>
+    <h1>🧪 VidNet Integration Test</h1>
+    
+    <div class="test-container">
+        <h2>JavaScript Loading Test</h2>
+        <div id="js-test-result" class="test-result">Testing...</div>
+    </div>
+    
+    <div class="test-container">
+        <h2>VidNetUI Class Test</h2>
+        <div id="class-test-result" class="test-result">Testing...</div>
+    </div>
+    
+    <div class="test-container">
+        <h2>URL Validation Test</h2>
+        <input type="text" id="test-url" placeholder="Enter a URL to test..." value="https://www.youtube.com/watch?v=test">
+        <button onclick="testURLValidation()">Test URL Validation</button>
+        <div id="url-test-result" class="test-result hidden">Ready to test</div>
+    </div>
+    
+    <div class="test-container">
+        <h2>DOM Element Test</h2>
+        <div id="dom-test-result" class="test-result">Testing...</div>
+    </div>
+    
+    <div class="test-container">
+        <h2>Utility Functions Test</h2>
+        <button onclick="testUtilityFunctions()">Test Utility Functions</button>
+        <div id="utility-test-result" class="test-result hidden">Ready to test</div>
+    </div>
+
+    <!-- Mock DOM elements that VidNet UI expects -->
+    <div style="display: none;">
+        <form id="url-form">
+            <input type="url" id="video-url" value="">
+            <button type="submit" id="fetch-btn">
+                <span id="fetch-btn-text">Get Video Info</span>
+                <div id="fetch-btn-loading" class="hidden"></div>
+            </button>
+        </form>
+        
+        <div id="url-feedback" class="hidden">
+            <div id="url-error" class="hidden">
+                <span id="url-error-message"></span>
+            </div>
+            <div id="url-success" class="hidden">
+                <span id="url-success-message"></span>
+            </div>
+        </div>
+        
+        <div id="url-status-icon" class="hidden"></div>
+        <button id="retry-button"></button>
+        <button id="download-another"></button>
+        
+        <div id="metadata-section" class="hidden"></div>
+        <div id="progress-section" class="hidden"></div>
+        <div id="download-complete-section" class="hidden"></div>
+        <div id="error-section" class="hidden"></div>
+        
+        <img id="video-thumbnail" src="" alt="">
+        <div id="video-title"></div>
+        <div id="video-duration"><span></span></div>
+        <div id="video-platform"><span></span></div>
+        <div id="video-qualities"></div>
+        <div id="audio-qualities"></div>
+        <div id="audio-section"></div>
+        
+        <div id="progress-bar"></div>
+        <div id="progress-text"></div>
+        <div id="progress-percentage"></div>
+        <div id="step-validate"><div class="w-4"></div></div>
+        <div id="step-extract"><div class="w-4"></div></div>
+        <div id="step-process"><div class="w-4"></div></div>
+        <div id="step-complete"><div class="w-4"></div></div>
+        
+        <a id="download-link" href="#"></a>
+        <div id="cleanup-timer"></div>
+        <div id="error-message"></div>
+        <div id="error-suggestions"></div>
+    </div>
+
+    <!-- Include VidNet UI JavaScript -->
+    <script src="static/js/vidnet-ui.js"></script>
+    
+    <script>
+        // Test 1: JavaScript Loading
+        function testJavaScriptLoading() {
+            const resultDiv = document.getElementById('js-test-result');
+            
+            if (typeof VidNetUI !== 'undefined') {
+                resultDiv.className = 'test-result test-pass';
+                resultDiv.textContent = '✅ VidNet UI JavaScript loaded successfully';
+                return true;
+            } else {
+                resultDiv.className = 'test-result test-fail';
+                resultDiv.textContent = '❌ VidNet UI JavaScript failed to load';
+                return false;
+            }
+        }
+        
+        // Test 2: VidNetUI Class Instantiation
+        function testVidNetUIClass() {
+            const resultDiv = document.getElementById('class-test-result');
+            
+            try {
+                const ui = new VidNetUI();
+                if (ui && ui.apiBase === '/api/v1') {
+                    resultDiv.className = 'test-result test-pass';
+                    resultDiv.textContent = '✅ VidNetUI class instantiated successfully';
+                    return true;
+                } else {
+                    resultDiv.className = 'test-result test-fail';
+                    resultDiv.textContent = '❌ VidNetUI class properties not set correctly';
+                    return false;
+                }
+            } catch (error) {
+                resultDiv.className = 'test-result test-fail';
+                resultDiv.textContent = `❌ VidNetUI class instantiation failed: ${error.message}`;
+                return false;
+            }
+        }
+        
+        // Test 3: URL Validation
+        function testURLValidation() {
+            const resultDiv = document.getElementById('url-test-result');
+            const urlInput = document.getElementById('test-url');
+            const url = urlInput.value;
+            
+            resultDiv.classList.remove('hidden');
+            
+            try {
+                const ui = new VidNetUI();
+                
+                // Set the URL in the mock input
+                document.getElementById('video-url').value = url;
+                
+                const isValid = ui.validateURL();
+                
+                if (isValid) {
+                    resultDiv.className = 'test-result test-pass';
+                    resultDiv.textContent = `✅ URL "${url}" is valid`;
+                } else {
+                    resultDiv.className = 'test-result test-fail';
+                    resultDiv.textContent = `❌ URL "${url}" is invalid`;
+                }
+                
+                return isValid;
+            } catch (error) {
+                resultDiv.className = 'test-result test-fail';
+                resultDiv.textContent = `❌ URL validation failed: ${error.message}`;
+                return false;
+            }
+        }
+        
+        // Test 4: DOM Element Access
+        function testDOMElements() {
+            const resultDiv = document.getElementById('dom-test-result');
+            
+            const requiredElements = [
+                'url-form', 'video-url', 'fetch-btn', 'url-feedback',
+                'metadata-section', 'progress-section', 'error-section'
+            ];
+            
+            const missingElements = [];
+            
+            requiredElements.forEach(elementId => {
+                const element = document.getElementById(elementId);
+                if (!element) {
+                    missingElements.push(elementId);
+                }
+            });
+            
+            if (missingElements.length === 0) {
+                resultDiv.className = 'test-result test-pass';
+                resultDiv.textContent = '✅ All required DOM elements found';
+                return true;
+            } else {
+                resultDiv.className = 'test-result test-fail';
+                resultDiv.textContent = `❌ Missing DOM elements: ${missingElements.join(', ')}`;
+                return false;
+            }
+        }
+        
+        // Test 5: Utility Functions
+        function testUtilityFunctions() {
+            const resultDiv = document.getElementById('utility-test-result');
+            resultDiv.classList.remove('hidden');
+            
+            try {
+                const ui = new VidNetUI();
+                
+                // Test duration formatting
+                const duration1 = ui.formatDuration(65);
+                const duration2 = ui.formatDuration(3661);
+                
+                // Test file size formatting
+                const fileSize1 = ui.formatFileSize(1024);
+                const fileSize2 = ui.formatFileSize(1048576);
+                
+                const tests = [
+                    { name: 'Duration 65s', result: duration1, expected: '1:05' },
+                    { name: 'Duration 3661s', result: duration2, expected: '1:01:01' },
+                    { name: 'File size 1024B', result: fileSize1, expected: '1.0 KB' },
+                    { name: 'File size 1MB', result: fileSize2, expected: '1.0 MB' }
+                ];
+                
+                const failedTests = tests.filter(test => test.result !== test.expected);
+                
+                if (failedTests.length === 0) {
+                    resultDiv.className = 'test-result test-pass';
+                    resultDiv.textContent = '✅ All utility functions work correctly';
+                    return true;
+                } else {
+                    resultDiv.className = 'test-result test-fail';
+                    resultDiv.textContent = `❌ Failed tests: ${failedTests.map(t => `${t.name} (got ${t.result}, expected ${t.expected})`).join(', ')}`;
+                    return false;
+                }
+            } catch (error) {
+                resultDiv.className = 'test-result test-fail';
+                resultDiv.textContent = `❌ Utility function test failed: ${error.message}`;
+                return false;
+            }
+        }
+        
+        // Run tests on page load
+        document.addEventListener('DOMContentLoaded', () => {
+            console.log('Running VidNet Integration Tests...');
+            
+            setTimeout(() => {
+                const test1 = testJavaScriptLoading();
+                const test2 = testVidNetUIClass();
+                const test4 = testDOMElements();
+                
+                const passedTests = [test1, test2, test4].filter(Boolean).length;
+                const totalTests = 3;
+                
+                console.log(`Integration Tests: ${passedTests}/${totalTests} passed`);
+                
+                if (passedTests === totalTests) {
+                    console.log('🎉 All integration tests passed!');
+                } else {
+                    console.log('💥 Some integration tests failed!');
+                }
+            }, 100);
+        });
+    </script>
+</body>
+</html>

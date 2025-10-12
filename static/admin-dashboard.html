@@ -1,0 +1,536 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>VidNet Admin Dashboard</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        .metric-card {
+            transition: transform 0.2s ease-in-out;
+        }
+        .metric-card:hover {
+            transform: translateY(-2px);
+        }
+        .alert-critical {
+            animation: pulse 2s infinite;
+        }
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.7; }
+        }
+    </style>
+</head>
+<body class="bg-gray-100 min-h-screen">
+    <!-- Header -->
+    <header class="bg-white shadow-sm border-b">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex justify-between items-center py-4">
+                <div class="flex items-center">
+                    <h1 class="text-2xl font-bold text-gray-900">VidNet Admin Dashboard</h1>
+                    <span class="ml-3 px-2 py-1 text-xs font-medium bg-blue-100 text-blue-800 rounded-full">
+                        Live
+                    </span>
+                </div>
+                <div class="flex items-center space-x-4">
+                    <button id="refreshBtn" class="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors">
+                        Refresh
+                    </button>
+                    <button id="exportBtn" class="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors">
+                        Export Metrics
+                    </button>
+                    <div class="text-sm text-gray-500">
+                        Last updated: <span id="lastUpdated">--</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <!-- Main Content -->
+    <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        <!-- Alerts Section -->
+        <div id="alertsSection" class="mb-8 hidden">
+            <h2 class="text-lg font-semibold text-gray-900 mb-4">System Alerts</h2>
+            <div id="alertsContainer" class="space-y-2"></div>
+        </div>
+
+        <!-- Overview Cards -->
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+            <div class="metric-card bg-white rounded-lg shadow p-6">
+                <div class="flex items-center">
+                    <div class="flex-shrink-0">
+                        <div class="w-8 h-8 bg-blue-500 rounded-md flex items-center justify-center">
+                            <svg class="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M9 19l3 3m0 0l3-3m-3 3V10"></path>
+                            </svg>
+                        </div>
+                    </div>
+                    <div class="ml-5 w-0 flex-1">
+                        <dl>
+                            <dt class="text-sm font-medium text-gray-500 truncate">Total Downloads</dt>
+                            <dd class="text-lg font-medium text-gray-900" id="totalDownloads">--</dd>
+                        </dl>
+                    </div>
+                </div>
+            </div>
+
+            <div class="metric-card bg-white rounded-lg shadow p-6">
+                <div class="flex items-center">
+                    <div class="flex-shrink-0">
+                        <div class="w-8 h-8 bg-green-500 rounded-md flex items-center justify-center">
+                            <svg class="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19V6l12-3v13M9 19c0 1.105-1.343 2-3 2s-3-.895-3-2 1.343-2 3-2 3 .895 3 2zm12-3c0 1.105-1.343 2-3 2s-3-.895-3-2 1.343-2 3-2 3 .895 3 2zM9 10l12-3"></path>
+                            </svg>
+                        </div>
+                    </div>
+                    <div class="ml-5 w-0 flex-1">
+                        <dl>
+                            <dt class="text-sm font-medium text-gray-500 truncate">Audio Extractions</dt>
+                            <dd class="text-lg font-medium text-gray-900" id="totalAudioExtractions">--</dd>
+                        </dl>
+                    </div>
+                </div>
+            </div>
+
+            <div class="metric-card bg-white rounded-lg shadow p-6">
+                <div class="flex items-center">
+                    <div class="flex-shrink-0">
+                        <div class="w-8 h-8 bg-purple-500 rounded-md flex items-center justify-center">
+                            <svg class="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197m13.5-9a2.5 2.5 0 11-5 0 2.5 2.5 0 015 0z"></path>
+                            </svg>
+                        </div>
+                    </div>
+                    <div class="ml-5 w-0 flex-1">
+                        <dl>
+                            <dt class="text-sm font-medium text-gray-500 truncate">Active Users (24h)</dt>
+                            <dd class="text-lg font-medium text-gray-900" id="activeUsers">--</dd>
+                        </dl>
+                    </div>
+                </div>
+            </div>
+
+            <div class="metric-card bg-white rounded-lg shadow p-6">
+                <div class="flex items-center">
+                    <div class="flex-shrink-0">
+                        <div class="w-8 h-8 bg-yellow-500 rounded-md flex items-center justify-center">
+                            <svg class="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"></path>
+                            </svg>
+                        </div>
+                    </div>
+                    <div class="ml-5 w-0 flex-1">
+                        <dl>
+                            <dt class="text-sm font-medium text-gray-500 truncate">Cache Hit Rate</dt>
+                            <dd class="text-lg font-medium text-gray-900" id="cacheHitRate">--</dd>
+                        </dl>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Performance Metrics -->
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-8">
+            <!-- System Health -->
+            <div class="bg-white rounded-lg shadow p-6">
+                <h3 class="text-lg font-medium text-gray-900 mb-4">System Health</h3>
+                <div class="space-y-4">
+                    <div class="flex items-center justify-between">
+                        <span class="text-sm font-medium text-gray-500">Health Score</span>
+                        <div class="flex items-center">
+                            <div class="w-32 bg-gray-200 rounded-full h-2 mr-3">
+                                <div id="healthScoreBar" class="bg-green-500 h-2 rounded-full" style="width: 0%"></div>
+                            </div>
+                            <span id="healthScore" class="text-sm font-medium text-gray-900">--</span>
+                        </div>
+                    </div>
+                    <div class="flex items-center justify-between">
+                        <span class="text-sm font-medium text-gray-500">CPU Usage</span>
+                        <span id="cpuUsage" class="text-sm font-medium text-gray-900">--</span>
+                    </div>
+                    <div class="flex items-center justify-between">
+                        <span class="text-sm font-medium text-gray-500">Memory Usage</span>
+                        <span id="memoryUsage" class="text-sm font-medium text-gray-900">--</span>
+                    </div>
+                    <div class="flex items-center justify-between">
+                        <span class="text-sm font-medium text-gray-500">Response Time</span>
+                        <span id="avgResponseTime" class="text-sm font-medium text-gray-900">--</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Platform Performance -->
+            <div class="bg-white rounded-lg shadow p-6">
+                <h3 class="text-lg font-medium text-gray-900 mb-4">Platform Performance</h3>
+                <div id="platformMetrics" class="space-y-3">
+                    <!-- Platform metrics will be populated here -->
+                </div>
+            </div>
+        </div>
+
+        <!-- Charts Section -->
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-8">
+            <!-- Downloads by Platform Chart -->
+            <div class="bg-white rounded-lg shadow p-6">
+                <h3 class="text-lg font-medium text-gray-900 mb-4">Downloads by Platform</h3>
+                <canvas id="platformChart" width="400" height="200"></canvas>
+            </div>
+
+            <!-- Quality Distribution Chart -->
+            <div class="bg-white rounded-lg shadow p-6">
+                <h3 class="text-lg font-medium text-gray-900 mb-4">Quality Distribution</h3>
+                <canvas id="qualityChart" width="400" height="200"></canvas>
+            </div>
+        </div>
+
+        <!-- Detailed Metrics Tables -->
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
+            <!-- Cache Performance -->
+            <div class="bg-white rounded-lg shadow p-6">
+                <h3 class="text-lg font-medium text-gray-900 mb-4">Cache Performance</h3>
+                <div class="overflow-x-auto">
+                    <table class="min-w-full divide-y divide-gray-200">
+                        <thead class="bg-gray-50">
+                            <tr>
+                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Metric</th>
+                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Value</th>
+                            </tr>
+                        </thead>
+                        <tbody id="cacheMetricsTable" class="bg-white divide-y divide-gray-200">
+                            <!-- Cache metrics will be populated here -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- User Engagement -->
+            <div class="bg-white rounded-lg shadow p-6">
+                <h3 class="text-lg font-medium text-gray-900 mb-4">User Engagement</h3>
+                <div class="overflow-x-auto">
+                    <table class="min-w-full divide-y divide-gray-200">
+                        <thead class="bg-gray-50">
+                            <tr>
+                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Metric</th>
+                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Value</th>
+                            </tr>
+                        </thead>
+                        <tbody id="userEngagementTable" class="bg-white divide-y divide-gray-200">
+                            <!-- User engagement metrics will be populated here -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <script>
+        class AdminDashboard {
+            constructor() {
+                this.apiBase = '/api/v1';
+                this.refreshInterval = 30000; // 30 seconds
+                this.charts = {};
+                this.init();
+            }
+
+            async init() {
+                this.setupEventListeners();
+                await this.loadDashboardData();
+                this.startAutoRefresh();
+            }
+
+            setupEventListeners() {
+                document.getElementById('refreshBtn').addEventListener('click', () => {
+                    this.loadDashboardData();
+                });
+
+                document.getElementById('exportBtn').addEventListener('click', () => {
+                    this.exportMetrics();
+                });
+            }
+
+            async loadDashboardData() {
+                try {
+                    const response = await fetch(`${this.apiBase}/monitoring/dashboard`);
+                    const result = await response.json();
+
+                    if (result.success) {
+                        this.updateDashboard(result.data);
+                        this.updateLastUpdated();
+                    } else {
+                        console.error('Failed to load dashboard data:', result.error);
+                    }
+                } catch (error) {
+                    console.error('Error loading dashboard data:', error);
+                }
+            }
+
+            updateDashboard(data) {
+                // Update overview cards
+                this.updateOverviewCards(data.overview);
+                
+                // Update alerts
+                this.updateAlerts(data.alerts);
+                
+                // Update system health
+                this.updateSystemHealth(data.performance);
+                
+                // Update platform metrics
+                this.updatePlatformMetrics(data.business_metrics.platform_metrics);
+                
+                // Update charts
+                this.updateCharts(data.business_metrics);
+                
+                // Update detailed tables
+                this.updateCacheMetricsTable(data.cache_performance);
+                this.updateUserEngagementTable(data.business_metrics.user_engagement);
+            }
+
+            updateOverviewCards(overview) {
+                document.getElementById('totalDownloads').textContent = overview.total_downloads.toLocaleString();
+                document.getElementById('totalAudioExtractions').textContent = overview.total_audio_extractions.toLocaleString();
+                document.getElementById('activeUsers').textContent = overview.active_users_24h.toLocaleString();
+                document.getElementById('cacheHitRate').textContent = `${overview.cache_hit_rate.toFixed(1)}%`;
+            }
+
+            updateAlerts(alerts) {
+                const alertsSection = document.getElementById('alertsSection');
+                const alertsContainer = document.getElementById('alertsContainer');
+
+                if (alerts.length === 0) {
+                    alertsSection.classList.add('hidden');
+                    return;
+                }
+
+                alertsSection.classList.remove('hidden');
+                alertsContainer.innerHTML = '';
+
+                alerts.forEach(alert => {
+                    const alertDiv = document.createElement('div');
+                    const alertClass = alert.level === 'critical' ? 'bg-red-100 border-red-400 text-red-700 alert-critical' : 'bg-yellow-100 border-yellow-400 text-yellow-700';
+                    
+                    alertDiv.className = `border-l-4 p-4 ${alertClass}`;
+                    alertDiv.innerHTML = `
+                        <div class="flex">
+                            <div class="flex-shrink-0">
+                                <svg class="h-5 w-5" fill="currentColor" viewBox="0 0 20 20">
+                                    <path fill-rule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clip-rule="evenodd"></path>
+                                </svg>
+                            </div>
+                            <div class="ml-3">
+                                <p class="text-sm font-medium">${alert.message}</p>
+                                <p class="text-xs mt-1">Type: ${alert.type} | Level: ${alert.level}</p>
+                            </div>
+                        </div>
+                    `;
+                    alertsContainer.appendChild(alertDiv);
+                });
+            }
+
+            updateSystemHealth(performance) {
+                const healthScore = performance.health_status.health_score;
+                const systemMetrics = performance.system_metrics;
+
+                document.getElementById('healthScore').textContent = `${healthScore}%`;
+                document.getElementById('healthScoreBar').style.width = `${healthScore}%`;
+                
+                // Update health bar color based on score
+                const healthBar = document.getElementById('healthScoreBar');
+                if (healthScore >= 90) {
+                    healthBar.className = 'bg-green-500 h-2 rounded-full';
+                } else if (healthScore >= 70) {
+                    healthBar.className = 'bg-yellow-500 h-2 rounded-full';
+                } else {
+                    healthBar.className = 'bg-red-500 h-2 rounded-full';
+                }
+
+                document.getElementById('cpuUsage').textContent = `${systemMetrics.cpu_percent.toFixed(1)}%`;
+                document.getElementById('memoryUsage').textContent = `${systemMetrics.memory_percent.toFixed(1)}%`;
+                document.getElementById('avgResponseTime').textContent = `${performance.performance_summary.average_response_time.toFixed(2)}s`;
+            }
+
+            updatePlatformMetrics(platformMetrics) {
+                const container = document.getElementById('platformMetrics');
+                container.innerHTML = '';
+
+                Object.entries(platformMetrics).forEach(([platform, metrics]) => {
+                    const platformDiv = document.createElement('div');
+                    platformDiv.className = 'flex items-center justify-between py-2 border-b border-gray-200';
+                    
+                    const successRateColor = metrics.success_rate >= 95 ? 'text-green-600' : 
+                                           metrics.success_rate >= 90 ? 'text-yellow-600' : 'text-red-600';
+                    
+                    platformDiv.innerHTML = `
+                        <div class="flex-1">
+                            <div class="text-sm font-medium text-gray-900 capitalize">${platform}</div>
+                            <div class="text-xs text-gray-500">${metrics.total_operations} operations</div>
+                        </div>
+                        <div class="text-right">
+                            <div class="text-sm font-medium ${successRateColor}">${metrics.success_rate.toFixed(1)}%</div>
+                            <div class="text-xs text-gray-500">${metrics.average_processing_time.toFixed(2)}s avg</div>
+                        </div>
+                    `;
+                    container.appendChild(platformDiv);
+                });
+            }
+
+            updateCharts(businessMetrics) {
+                // Platform downloads chart
+                this.updatePlatformChart(businessMetrics.downloads_by_platform);
+                
+                // Quality distribution chart
+                this.updateQualityChart(businessMetrics.downloads_by_quality);
+            }
+
+            updatePlatformChart(platformData) {
+                const ctx = document.getElementById('platformChart').getContext('2d');
+                
+                if (this.charts.platform) {
+                    this.charts.platform.destroy();
+                }
+
+                const labels = Object.keys(platformData);
+                const data = Object.values(platformData);
+                const colors = ['#3B82F6', '#10B981', '#F59E0B', '#EF4444', '#8B5CF6', '#06B6D4', '#84CC16'];
+
+                this.charts.platform = new Chart(ctx, {
+                    type: 'doughnut',
+                    data: {
+                        labels: labels.map(l => l.charAt(0).toUpperCase() + l.slice(1)),
+                        datasets: [{
+                            data: data,
+                            backgroundColor: colors.slice(0, labels.length),
+                            borderWidth: 2,
+                            borderColor: '#ffffff'
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        plugins: {
+                            legend: {
+                                position: 'bottom'
+                            }
+                        }
+                    }
+                });
+            }
+
+            updateQualityChart(qualityData) {
+                const ctx = document.getElementById('qualityChart').getContext('2d');
+                
+                if (this.charts.quality) {
+                    this.charts.quality.destroy();
+                }
+
+                const labels = Object.keys(qualityData);
+                const data = Object.values(qualityData);
+
+                this.charts.quality = new Chart(ctx, {
+                    type: 'bar',
+                    data: {
+                        labels: labels,
+                        datasets: [{
+                            label: 'Downloads',
+                            data: data,
+                            backgroundColor: '#3B82F6',
+                            borderColor: '#1D4ED8',
+                            borderWidth: 1
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        scales: {
+                            y: {
+                                beginAtZero: true
+                            }
+                        }
+                    }
+                });
+            }
+
+            updateCacheMetricsTable(cacheMetrics) {
+                const tbody = document.getElementById('cacheMetricsTable');
+                tbody.innerHTML = '';
+
+                const metrics = [
+                    ['Hit Rate', `${cacheMetrics.hit_rate.toFixed(1)}%`],
+                    ['Miss Rate', `${cacheMetrics.miss_rate.toFixed(1)}%`],
+                    ['Total Operations', cacheMetrics.total_operations.toLocaleString()],
+                    ['Cache Hits', cacheMetrics.hits.toLocaleString()],
+                    ['Cache Misses', cacheMetrics.misses.toLocaleString()],
+                    ['Avg Response Time', `${cacheMetrics.average_response_time_ms.toFixed(2)}ms`]
+                ];
+
+                metrics.forEach(([metric, value]) => {
+                    const row = document.createElement('tr');
+                    row.innerHTML = `
+                        <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">${metric}</td>
+                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">${value}</td>
+                    `;
+                    tbody.appendChild(row);
+                });
+            }
+
+            updateUserEngagementTable(userEngagement) {
+                const tbody = document.getElementById('userEngagementTable');
+                tbody.innerHTML = '';
+
+                const metrics = [
+                    ['Total Users', userEngagement.total_users.toLocaleString()],
+                    ['Active Users (24h)', userEngagement.active_users_24h.toLocaleString()],
+                    ['Returning Users', userEngagement.returning_users.toLocaleString()],
+                    ['Retention Rate', `${userEngagement.retention_rate.toFixed(1)}%`],
+                    ['Avg Operations/User', userEngagement.average_operations_per_user.toFixed(1)],
+                    ['Total Operations', userEngagement.total_operations.toLocaleString()]
+                ];
+
+                metrics.forEach(([metric, value]) => {
+                    const row = document.createElement('tr');
+                    row.innerHTML = `
+                        <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">${metric}</td>
+                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">${value}</td>
+                    `;
+                    tbody.appendChild(row);
+                });
+            }
+
+            updateLastUpdated() {
+                const now = new Date();
+                document.getElementById('lastUpdated').textContent = now.toLocaleTimeString();
+            }
+
+            async exportMetrics() {
+                try {
+                    const response = await fetch(`${this.apiBase}/monitoring/export`, {
+                        method: 'POST'
+                    });
+                    const result = await response.json();
+
+                    if (result.success) {
+                        alert(`Metrics exported successfully to ${result.data.exported_file}`);
+                    } else {
+                        alert('Failed to export metrics: ' + result.message);
+                    }
+                } catch (error) {
+                    console.error('Error exporting metrics:', error);
+                    alert('Error exporting metrics. Please try again.');
+                }
+            }
+
+            startAutoRefresh() {
+                setInterval(() => {
+                    this.loadDashboardData();
+                }, this.refreshInterval);
+            }
+        }
+
+        // Initialize dashboard when page loads
+        document.addEventListener('DOMContentLoaded', () => {
+            new AdminDashboard();
+        });
+    </script>
+</body>
+</html>
