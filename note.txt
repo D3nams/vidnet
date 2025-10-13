@@ -1,0 +1,6 @@
+lets add a loading animation while the download is proceesing in the index.html
+and also get tiktok logo to render from ()
+also make it production ready
+make it run production rady and not locally
+and add monitization by ads intergration
+then publish
