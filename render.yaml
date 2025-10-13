@@ -1,15 +1,13 @@
 services:
   - type: web
     name: vidnet-api
-    env: docker
-    dockerfilePath: ./Dockerfile.minimal
-    dockerContext: .
+    env: python3
     plan: starter
     region: oregon
     branch: main
     healthCheckPath: /health
-    buildCommand: ""
-    startCommand: ""
+    buildCommand: pip install --upgrade pip && pip install -r requirements.txt
+    startCommand: uvicorn app.main:app --host 0.0.0.0 --port $PORT
     envVars:
       - key: ENVIRONMENT
         value: production
