@@ -2,12 +2,14 @@ services:
   - type: web
     name: vidnet-api
     env: docker
-    dockerfilePath: ./Dockerfile
+    dockerfilePath: ./Dockerfile.minimal
     dockerContext: .
     plan: starter
     region: oregon
     branch: main
     healthCheckPath: /health
+    buildCommand: docker build -t vidnet-api .
+    startCommand: ""
     envVars:
       - key: ENVIRONMENT
         value: production
