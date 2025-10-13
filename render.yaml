@@ -7,7 +7,7 @@ services:
     branch: main
     healthCheckPath: /health
     buildCommand: pip install --upgrade pip && pip install -r requirements.txt
-    startCommand: uvicorn app.main:app --host 0.0.0.0 --port $PORT
+    startCommand: python start.py
     envVars:
       - key: ENVIRONMENT
         value: production
@@ -16,50 +16,9 @@ services:
           type: redis
           name: vidnet-redis
           property: connectionString
-      - key: PERFORMANCE_MONITORING_ENABLED
-        value: "true"
-      - key: RATE_LIMIT_REQUESTS_PER_MINUTE
-        value: "100"
-      - key: RATE_LIMIT_REQUESTS_PER_HOUR
-        value: "2000"
-      - key: RATE_LIMIT_BURST_LIMIT
-        value: "20"
-      - key: METADATA_CACHE_TTL
-        value: "3600"
-      - key: DOWNLOAD_CACHE_TTL
-        value: "1800"
-      - key: PERFORMANCE_RESPONSE_TIME_WARNING
-        value: "2.0"
-      - key: PERFORMANCE_RESPONSE_TIME_CRITICAL
-        value: "5.0"
-      - key: PERFORMANCE_CPU_WARNING
-        value: "70.0"
-      - key: PERFORMANCE_CPU_CRITICAL
-        value: "90.0"
-      - key: PERFORMANCE_MEMORY_WARNING
-        value: "75.0"
-      - key: PERFORMANCE_MEMORY_CRITICAL
-        value: "90.0"
-    # Docker build and start commands are handled by Dockerfile
     
   - type: redis
     name: vidnet-redis
     plan: starter
     region: oregon
     maxmemoryPolicy: allkeys-lru
-    
-databases: []
-
-# Static site for frontend assets (optional - can use CDN instead)
-staticSites:
-  - name: vidnet-static
-    buildCommand: echo "Static files ready"
-    publishPath: ./static
-    pullRequestPreviewsEnabled: false
-    headers:
-      - path: /*
-        headers:
-          Cache-Control: public, max-age=31536000, immutable
-      - path: /*.html
-        headers:
-          Cache-Control: public, max-age=3600
