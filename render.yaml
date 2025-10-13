@@ -7,7 +7,7 @@ services:
     branch: main
     healthCheckPath: /health
     buildCommand: pip install --upgrade pip && pip install -r requirements.txt
-    startCommand: python start.py
+
     envVars:
       - key: ENVIRONMENT
         value: production

@@ -1,6 +1,7 @@
 # Core dependencies for VidNet
 fastapi>=0.100.0
 uvicorn[standard]>=0.20.0
+waitress>=2.1.0
 yt-dlp>=2024.1.0
 redis>=4.0.0
 httpx>=0.25.0
