@@ -1,4 +1,4 @@
-# Core dependencies for VidNet
+# Core dependencies for VidNet deployment
 fastapi>=0.100.0
 uvicorn[standard]>=0.20.0
 yt-dlp>=2024.1.0
