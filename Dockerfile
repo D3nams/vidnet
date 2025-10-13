@@ -44,16 +44,12 @@ RUN mkdir -p downloads logs && \
 # Switch to non-root user
 USER vidnet
 
-# Copy health check script
-COPY deployment/docker-healthcheck.sh /usr/local/bin/healthcheck.sh
-RUN chmod +x /usr/local/bin/healthcheck.sh
-
-# Health check
+# Health check (simple curl-based)
 HEALTHCHECK --interval=30s --timeout=10s --start-period=30s --retries=3 \
-    CMD /usr/local/bin/healthcheck.sh
+    CMD curl -f http://localhost:${PORT:-8000}/health || exit 1
 
 # Expose port
 EXPOSE 8000
 
-# Start command
-CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000"]
+# Start command (use PORT env var from Render)
+CMD uvicorn app.main:app --host 0.0.0.0 --port ${PORT:-8000}

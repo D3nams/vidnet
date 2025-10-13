@@ -40,8 +40,7 @@ services:
         value: "75.0"
       - key: PERFORMANCE_MEMORY_CRITICAL
         value: "90.0"
-    buildCommand: docker build -t vidnet-api .
-    startCommand: uvicorn app.main:app --host 0.0.0.0 --port $PORT --workers 2
+    # Docker build and start commands are handled by Dockerfile
     
   - type: redis
     name: vidnet-redis
